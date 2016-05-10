@@ -17,11 +17,22 @@ namespace Graph
             var client = new GraphClient(new Uri("http://localhost:7474/db/data"), username: "neo4j", password: "qwerty123");
             client.Connect();
 
+            CipherQueries(client);
+
+            InsertRosslynReportingLines(client);
+
+            Console.ReadLine();
+        }
+
+        static void CipherQueries(GraphClient client)
+        {
             //Get all movies from the database
             var allMovies = client.Cypher
-                                  .Match("(m:Movie)")
-                                  .Return(m => m.As<Movie>())
+                                  .Match("(x:Movie)")
+                                  .Return(x => x.As<Movie>())
                                   .Results;
+
+            //NOTE: Must use the same variable (x) in both Match and Return clauses
 
             Console.WriteLine("\nThere is a total of {0} movies in the database", allMovies.Count());
             allMovies.OrderBy(foo => foo.Title).ToList().ForEach(movie =>
@@ -75,28 +86,35 @@ namespace Graph
                 });
 
             //(TomH) -[:ACTED_IN { roles:['Jim Lovell']}]->(Apollo13),
-
-            InsertSmallTree(client);
-
-            Console.ReadLine();
         }
 
-        static void InsertSmallTree(GraphClient client)
+        static void InsertRosslynReportingLines(GraphClient client)
         {
+            //Wipe out all the existing employees and their relationship
+            //TODO
+            //client.Cypher.OptionalMatch("")
+
+            //List of employees to be added
             var employees = new List<Employee>
             {
-                new Employee { Id = 0, Name = "God"},
-                new Employee { Id = 1, Name = "A"},
-                new Employee { Id = 2, Name = "B"},
-                new Employee { Id = 11, Name = "A1"},
-                new Employee { Id = 12, Name = "A2"},
-                new Employee { Id = 111, Name = "A11"},
-                new Employee { Id = 112, Name = "A12"},
-                new Employee { Id = 113, Name = "A13"},
-                new Employee { Id = 121, Name = "A21"},
-                new Employee { Id = 21, Name = "B1"},
-                new Employee { Id = 22, Name = "B2"},
-                new Employee { Id = 23, Name = "B3"}
+                new Employee { Id = 0, Name = "Hugh"},
+                new Employee { Id = 1, Name = "Quynh"},
+                new Employee { Id = 11, Name = "Rodrigo"},
+                new Employee { Id = 111, Name = "Michael"},
+                new Employee { Id = 112, Name = "Cuong"},
+                new Employee { Id = 113, Name = "Adam"},
+                new Employee { Id = 12, Name = "Aman"},
+                new Employee { Id = 121, Name = "Sergio"},
+                new Employee { Id = 122, Name = "Harmeet"},
+                new Employee { Id = 123, Name = "Burak"},
+                new Employee { Id = 124, Name = "Jagath"},
+                new Employee { Id = 125, Name = "Sergii"},
+                new Employee { Id = 13, Name = "Wesley"},
+                new Employee { Id = 2, Name = "Astrid"},
+                new Employee { Id = 21, Name = "Richard"},
+                new Employee { Id = 22, Name = "Jacob"},
+                new Employee { Id = 23, Name = "Laben"},
+                new Employee { Id = 24, Name = "Ambar"},
             };
 
             foreach (var emp in employees)
@@ -125,6 +143,8 @@ namespace Graph
                         .ExecuteWithoutResults();
                 }
             }
+
+            Console.WriteLine("Rosslyn reporting lines added");
         }
     }
 
