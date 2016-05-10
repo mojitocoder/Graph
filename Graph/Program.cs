@@ -17,6 +17,18 @@ namespace Graph
             var client = new GraphClient(new Uri("http://localhost:7474/db/data"), username: "neo4j", password: "qwerty123");
             client.Connect();
 
+            //Get all movies from the database
+            var allMovies = client.Cypher
+                                  .Match("(m:Movie)")
+                                  .Return(m => m.As<Movie>())
+                                  .Results;
+
+            Console.WriteLine("\nThere is a total of {0} movies in the database", allMovies.Count());
+            allMovies.OrderBy(foo => foo.Title).ToList().ForEach(movie =>
+            {
+                Console.WriteLine($"\t{movie.Title} - {movie.Released}");
+            });
+
             //Get movies by labels
             Console.WriteLine("\nTop 10 movies:");
             client.Cypher
