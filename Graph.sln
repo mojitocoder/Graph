@@ -1,11 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.24720.0
+VisualStudioVersion = 14.0.25123.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Graph", "Graph\Graph.csproj", "{2B319F70-A37E-43E0-99A7-F7F19C1AE8BF}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReadFile", "ReadFile\ReadFile.csproj", "{35B1764D-3E0C-4FE9-9D02-0CB77E746ABA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReadFile.Test", "ReadFile.Test\ReadFile.Test.csproj", "{8510F62B-E9C9-4F4D-A41C-38F52FD5845C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{35B1764D-3E0C-4FE9-9D02-0CB77E746ABA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{35B1764D-3E0C-4FE9-9D02-0CB77E746ABA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{35B1764D-3E0C-4FE9-9D02-0CB77E746ABA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8510F62B-E9C9-4F4D-A41C-38F52FD5845C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8510F62B-E9C9-4F4D-A41C-38F52FD5845C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8510F62B-E9C9-4F4D-A41C-38F52FD5845C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8510F62B-E9C9-4F4D-A41C-38F52FD5845C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
