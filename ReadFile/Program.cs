@@ -48,71 +48,7 @@ namespace ReadFile
         }
     }
 
-    public class DnBFileReader
-    {
-        private int GetNumberOfHeaderRows(string fileName)
-        {
-            const char chrSeparator = '|';
-            const string headerTwoCols = "D-U-N-S NUMBER|BUSINESS NAME"; //The first two header columns
 
-            using (var file = new StreamReader(fileName, Encoding.Default))
-            {
-                var count = 0;
-                for (var i = 0; i < 5; i++)
-                {
-                    var fileHeaderRow = file.ReadLine();
-                    if (fileHeaderRow == null) continue;
-
-                    var fileHeaderArr = fileHeaderRow.Split(chrSeparator).Take(2);
-                    var fileTwoHeaderCols = string.Join(chrSeparator.ToString(), fileHeaderArr);
-                    if (string.Equals(fileTwoHeaderCols, headerTwoCols, StringComparison.InvariantCultureIgnoreCase))
-                        count++;
-                    else
-                        return count;
-                }
-                return count;
-            }
-        }
-
-        public IEnumerable<DnBEntity> ReadFile(string fileName)
-        {
-            var headerCount = GetNumberOfHeaderRows(fileName);
-
-            using (var file = new StreamReader(fileName, Encoding.Default))
-            {
-                for (int i = 0; i < headerCount; i++)
-                {
-                    file.ReadLine(); //skip the header rows
-                }
-
-                while (true)
-                {
-                    var line = file.ReadLine();
-
-                    if (line == null)
-                        yield break;
-                    else
-                    {
-                        var csv = line.Split('|');
-                        yield return new DnBEntity
-                        {
-                            No = csv[0],
-                            Name = csv[1],
-                            Country = csv[8],
-                            HeadquarterDuns = csv[62],
-                            DomesticDuns = csv[74],
-                            GuoDuns = csv[84]
-                        };
-                    }
-                }
-            }
-        }
-
-        public string ToString(DnBEntity entity)
-        {
-            return $"Duns: {entity.No}; Name: {entity.Name}; Country: {entity.Country}; Headquarter: {entity.HeadquarterDuns}; Domestic: {entity.DomesticDuns}; Global: {entity.GuoDuns}";
-        }
-    }
 
     public class DnBEntity
     {
@@ -138,31 +74,10 @@ namespace ReadFile
         public string GuoDuns { get; set; } //85
     }
 
-    public class Company
-    {
-        [JsonProperty(PropertyName = "no")]
-        public string No { get; set; }
 
-        [JsonProperty(PropertyName = "name")]
-        public string Name { get; set; }
 
-        [JsonProperty(PropertyName = "country")]
-        public string Country { get; set; }
-    }
 
-    public class Relationship
-    {
-        public string ChildNo { get; set; }
-        public string ParentNo { get; set; }
-        public RelationshipType RelType { get; set; }
-    }
 
-    public enum RelationshipType
-    {
-        Headquarter,
-        Domestic,
-        Global
-    }
 
     public class DnBGraph
     {
