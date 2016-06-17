@@ -1,5 +1,6 @@
 ﻿using CsvHelper;
 using CsvHelper.Configuration;
+using Neo4jClient;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -14,10 +15,19 @@ namespace PatternOfLife
     {
         static void Main(string[] args)
         {
-            var gpPath = @"C:\GitHub\Graph\TestData\GPs.csv";
-            var gpReader = new GpReader(gpPath);
+            var client = new GraphClient(new Uri("http://localhost:7474/db/data"), username: "neo4j", password: "qwerty123");
+            client.Connect();
 
-            gpReader.Read();
+            var gpPath = @"Data\GPs.csv";
+            var gpReader = new GpReader(gpPath);
+            var gps = gpReader.Read();
+
+            foreach (var item in gps)
+            {
+                client.Cypher.Create("(foo:GP {newGP})")
+                    .WithParam("newGP", item)
+                    .ExecuteWithoutResults();
+            }
         }
     }
 
@@ -46,6 +56,7 @@ namespace PatternOfLife
     }
 
     public class GpRecord
+
     {
         [JsonProperty(PropertyName = "code")]
         public string Code { get; set; }
