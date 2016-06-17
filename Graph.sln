@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReadFile", "ReadFile\ReadFi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReadFile.Test", "ReadFile.Test\ReadFile.Test.csproj", "{8510F62B-E9C9-4F4D-A41C-38F52FD5845C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PatternOfLife", "PatternOfLife\PatternOfLife.csproj", "{8674FCD5-8DC8-41C2-8D88-2D3619969505}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{8510F62B-E9C9-4F4D-A41C-38F52FD5845C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8510F62B-E9C9-4F4D-A41C-38F52FD5845C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8510F62B-E9C9-4F4D-A41C-38F52FD5845C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8674FCD5-8DC8-41C2-8D88-2D3619969505}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8674FCD5-8DC8-41C2-8D88-2D3619969505}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8674FCD5-8DC8-41C2-8D88-2D3619969505}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8674FCD5-8DC8-41C2-8D88-2D3619969505}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
