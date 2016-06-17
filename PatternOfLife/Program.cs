@@ -1,5 +1,6 @@
 ﻿using CsvHelper;
 using CsvHelper.Configuration;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -21,7 +22,7 @@ namespace PatternOfLife
     }
 
 
-    class GpReader
+    public class GpReader
     {
         private string filePath;
 
@@ -30,18 +31,15 @@ namespace PatternOfLife
             this.filePath = filePath;
         }
 
-        public void Read()
+        public IEnumerable<GpRecord> Read()
         {
             using (var file = new StreamReader(filePath))
             {
                 var csv = new CsvReader(file);
                 csv.Configuration.RegisterClassMap<GpRecordMap>();
-
                 while (csv.Read())
                 {
-                    var record = csv.GetRecord<GpRecord>();
-
-                    Console.WriteLine();
+                    yield return csv.GetRecord<GpRecord>();
                 }
             }
         }
@@ -49,25 +47,64 @@ namespace PatternOfLife
 
     public class GpRecord
     {
+        [JsonProperty(PropertyName = "code")]
         public string Code { get; set; }
+
+        [JsonProperty(PropertyName = "name")]
         public string Name { get; set; }
+
+        [JsonProperty(PropertyName = "grouping")]
         public string NationalGrouping { get; set; }
+
+        [JsonProperty(PropertyName = "health")]
         public string HighLevelHealth { get; set; }
+
+        [JsonProperty(PropertyName = "add1")]
         public string Address1 { get; set; }
+
+        [JsonProperty(PropertyName = "add2")]
         public string Address2 { get; set; }
+
+        [JsonProperty(PropertyName = "add3")]
         public string Address3 { get; set; }
+
+        [JsonProperty(PropertyName = "add4")]
         public string Address4 { get; set; }
+
+        [JsonProperty(PropertyName = "add5")]
         public string Address5 { get; set; }
+
+        [JsonProperty(PropertyName = "postcode")]
         public string PostCode { get; set; }
+
+        [JsonProperty(PropertyName = "opendate")]
         public DateTime? OpenDate { get; set; }
+
+        [JsonProperty(PropertyName = "closedate")]
         public DateTime? CloseDate { get; set; }
+
+        [JsonProperty(PropertyName = "status")]
         public char StatusCode { get; set; }
+
+        [JsonProperty(PropertyName = "type")]
         public char TypeCode { get; set; }
+
+        [JsonProperty(PropertyName = "parent")]
         public string ParentCode { get; set; }
+
+        [JsonProperty(PropertyName = "joindate")]
         public DateTime? JoinParentDate { get; set; }
+
+        [JsonProperty(PropertyName = "leftdate")]
         public DateTime? LeftParentDate { get; set; }
+
+        [JsonProperty(PropertyName = "phone")]
         public string ContactNo { get; set; }
+
+        [JsonProperty(PropertyName = "amended")]
         public bool Amended { get; set; }
+
+        [JsonProperty(PropertyName = "careorg")]
         public string CurrentCareOrg { get; set; }
     }
 
@@ -85,44 +122,22 @@ namespace PatternOfLife
             Map(m => m.Address4).Name("Address Line 4");
             Map(m => m.Address5).Name("Address Line 5");
             Map(m => m.PostCode).Name("Post Code");
-
-            Map(m => m.OpenDate).Name("Open Date").ConvertUsing(row =>
-            {
-                var date = row.GetField<string>("Open Date");
-                return GetGpDate(date);
-            });
-
-            Map(m => m.CloseDate).Name("Close Date").ConvertUsing(row =>
-            {
-                var date = row.GetField<string>("Close Date");
-                return GetGpDate(date);
-            });
-
+            Map(m => m.OpenDate).Name("Open Date").ConvertUsing(row => GetDateField(row, "Open Date"));
+            Map(m => m.CloseDate).Name("Close Date").ConvertUsing(row => GetDateField(row, "Close Date"));
             Map(m => m.StatusCode).Name("Status Code");
             Map(m => m.TypeCode).Name("Org Sub Type Code");
             Map(m => m.ParentCode).Name("Parent Org Code");
-
-            Map(m => m.JoinParentDate).Name("Join Parent Date").ConvertUsing(row =>
-            {
-                var date = row.GetField<string>("Join Parent Date");
-                return GetGpDate(date);
-            });
-
-            Map(m => m.LeftParentDate).Name("Left Parent Date").ConvertUsing(row =>
-            {
-                var date = row.GetField<string>("Left Parent Date");
-                return GetGpDate(date);
-            });
-
+            Map(m => m.JoinParentDate).Name("Join Parent Date").ConvertUsing(row => GetDateField(row, "Join Parent Date"));
+            Map(m => m.LeftParentDate).Name("Left Parent Date").ConvertUsing(row => GetDateField(row, "Left Parent Date"));
             Map(m => m.ContactNo).Name("Contact Tel Num");
             Map(m => m.Amended).Name("Amended Record").TypeConverterOption(true, "1");
             Map(m => m.CurrentCareOrg).Name("Current Care Org");
         }
 
-        public static DateTime? GetGpDate(string date)
+        public static DateTime? GetDateField(ICsvReaderRow row, string fieldName)
         {
-            date = date.Trim();
-            if (string.IsNullOrWhiteSpace(date) || date.Length != 8) return null;
+            var date = row.GetField<string>(fieldName).Trim();
+            if (string.IsNullOrEmpty(date) || date.Length != 8) return null;
             else
                 return new DateTime(int.Parse(date.Substring(0, 4)), int.Parse(date.Substring(4, 2)), int.Parse(date.Substring(6, 2)));
         }
