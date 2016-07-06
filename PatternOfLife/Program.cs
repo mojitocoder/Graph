@@ -20,23 +20,34 @@ namespace PatternOfLife
 
             var gpPath = @"Data\GPs.csv";
             var gpReader = new GpReader(gpPath);
-            var gps = gpReader.Read();
+            var gps = gpReader.Read().ToList();
 
             //Trim relevant columns to avoid silly mistakes
-            foreach (var item in gps)
-            {
-                item.NationalGrouping = item.NationalGrouping.Trim();
-                item.HighLevelHealth = item.HighLevelHealth.Trim();
-                item.PostCode = item.PostCode.Trim();
-            }
+            //foreach (var item in gps)
+            //{
+            //    item.NationalGrouping = item.NationalGrouping.Trim();
+            //    item.HighLevelHealth = item.HighLevelHealth.Trim();
+            //    item.PostCode = item.PostCode.Trim();
+            //}
 
-            //GP nodes
+            Console.WriteLine("\tList of GPs loaded");
+
+            //var tasks = gps.Select(item =>
+            //{
+            //    return client.Cypher.Create("(foo:GP {newGP})")
+            //        .WithParam("newGP", item)
+            //        .ExecuteWithoutResultsAsync();
+            //}).ToList();
+            //Task.WhenAll(tasks).Wait();
+
             foreach (var item in gps)
             {
                 client.Cypher.Create("(foo:GP {newGP})")
                     .WithParam("newGP", item)
                     .ExecuteWithoutResults();
             }
+
+            Console.WriteLine("\tList of GPs added into Neo4J");
 
             //National Grouping nodes
             var nationalGroupings = gps.Select(foo => foo.NationalGrouping)
@@ -49,15 +60,21 @@ namespace PatternOfLife
 
             foreach (var item in nationalGroupings)
             {
+                //create a new grouping
                 client.Cypher.Create("(foo:NationalGrouping {grouping})")
                                 .WithParam("grouping", item)
                                 .ExecuteWithoutResults();
 
-                //find related GPs and add a relationship between them
-                gps.Where(foo => foo.NationalGrouping == item.Name)
-                   .ToList();
-
+                //create all relationships with GPs in the locations
+                client.Cypher
+                      .Match("(gp:GP)", "(grouping:NationalGrouping)")
+                      .Where((GpRecord gp) => gp.NationalGrouping == item.Name)
+                      .AndWhere((NationalGrouping grouping) => grouping.Name == item.Name)
+                      .CreateUnique("gp-[:BELONGS_TO_GROUP]->grouping")
+                      .ExecuteWithoutResults();
             }
+
+            Console.WriteLine("\tNational Grouping nodes added");
 
 
             //High Level Health
@@ -68,6 +85,24 @@ namespace PatternOfLife
                                             Name = foo
                                         })
                                         .ToList();
+
+            foreach (var item in highLevelHealths)
+            {
+                //create a new HighLevelHealth
+                client.Cypher.Create("(foo:HighLevelHealth {health})")
+                                .WithParam("health", item)
+                                .ExecuteWithoutResults();
+
+                //create all relationships with GPs in the same HighLevelHealth
+                client.Cypher
+                      .Match("(gp:GP)", "(health:HighLevelHealth)")
+                      .Where((GpRecord gp) => gp.HighLevelHealth == item.Name)
+                      .AndWhere((HighLevelHealth health) => health.Name == item.Name)
+                      .CreateUnique("gp-[:BELONGS_TO_HEALTH]->health")
+                      .ExecuteWithoutResults();
+            }
+
+            Console.WriteLine("\tHigh Level Health nodes added");
 
             //PostCodes
             var postCodes = gps.Select(foo => foo.PostCode)
@@ -80,16 +115,50 @@ namespace PatternOfLife
                                 })
                                 .ToList();
 
+            foreach (var item in postCodes)
+            {
+                //create a new PostCode
+                client.Cypher.Create("(foo:PostCode {postcode})")
+                                .WithParam("postcode", item)
+                                .ExecuteWithoutResults();
+
+                //create all relationships with GPs in the same PostCode
+                client.Cypher
+                      .Match("(gp:GP)", "(p:PostCode)")
+                      .Where((GpRecord gp) => gp.PostCode == item.Full)
+                      .AndWhere((PostCode p) => p.Full == item.Full)
+                      .CreateUnique("gp-[:BELONGS_TO_POSTCODE]->p")
+                      .ExecuteWithoutResults();
+            }
+
+            Console.WriteLine("\tPostCode nodes added");
+
             //PostCodeInits
-            var postCodeInits = postCodes.Select(foo => foo.Init)
-                                         .Distinct()
-                                         .Select(foo => new PostCodeInit
-                                         {
-                                             Init = foo
-                                         })
-                                         .ToList();
+            var postCodeInits = gps.Select(foo => foo.PostCodeInit)
+                                    .Where(foo => !string.IsNullOrWhiteSpace(foo))
+                                    .Distinct()
+                                    .Select(foo => new PostCodeInit
+                                    {
+                                        Init = foo
+                                    }).ToList();
 
+            foreach (var item in postCodeInits)
+            {
+                //create a new PostCodeInit
+                client.Cypher.Create("(foo:PostCodeInit {p})")
+                                .WithParam("p", item)
+                                .ExecuteWithoutResults();
 
+                //create all relationships with GPs in the same PostCodeInit
+                client.Cypher
+                      .Match("(gp:GP)", "(p:PostCodeInit)")
+                      .Where((GpRecord gp) => gp.PostCodeInit == item.Init)
+                      .AndWhere((PostCodeInit p) => p.Init == item.Init)
+                      .CreateUnique("gp-[:BELONGS_TO_POSTCODEINIT]->p")
+                      .ExecuteWithoutResults();
+            }
+
+            Console.WriteLine("\tPostCodeInit nodes added");
         }
     }
 
@@ -149,6 +218,9 @@ namespace PatternOfLife
 
         [JsonProperty(PropertyName = "postcode")]
         public string PostCode { get; set; }
+
+        [JsonProperty(PropertyName = "postcodeinit")]
+        public string PostCodeInit { get; set; }
 
         [JsonProperty(PropertyName = "opendate")]
         public DateTime? OpenDate { get; set; }
@@ -214,14 +286,15 @@ namespace PatternOfLife
         {
             Map(m => m.Code).Name("Organisation Code");
             Map(m => m.Name).Name("Name");
-            Map(m => m.NationalGrouping).Name("National Grouping");
-            Map(m => m.HighLevelHealth).Name("High Level Health");
+            Map(m => m.NationalGrouping).Name("National Grouping").ConvertUsing(row => row.GetField<string>("National Grouping").Trim());
+            Map(m => m.HighLevelHealth).Name("High Level Health").ConvertUsing(row => row.GetField<string>("High Level Health").Trim());
             Map(m => m.Address1).Name("Address Line 1");
             Map(m => m.Address2).Name("Address Line 2");
             Map(m => m.Address3).Name("Address Line 3");
             Map(m => m.Address4).Name("Address Line 4");
             Map(m => m.Address5).Name("Address Line 5");
-            Map(m => m.PostCode).Name("Post Code");
+            Map(m => m.PostCode).Name("Post Code").ConvertUsing(row => row.GetField<string>("Post Code").Trim());
+            Map(m => m.PostCodeInit).ConvertUsing(row => row.GetField<string>("Post Code").Trim().Split(' ')[0]);
             Map(m => m.OpenDate).Name("Open Date").ConvertUsing(row => GetDateField(row, "Open Date"));
             Map(m => m.CloseDate).Name("Close Date").ConvertUsing(row => GetDateField(row, "Close Date"));
             Map(m => m.StatusCode).Name("Status Code");
