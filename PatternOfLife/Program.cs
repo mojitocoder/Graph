@@ -4,6 +4,7 @@ using Neo4jClient;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -186,6 +187,47 @@ namespace PatternOfLife
         }
     }
 
+    public class PropertyReader
+    {
+        private string filePath;
+        private bool hasHeader;
+
+        public PropertyReader(string filePath, bool hasHeader)
+        {
+            this.filePath = filePath;
+            this.hasHeader = hasHeader;
+        }
+
+        public IEnumerable<PropTrans> Read()
+        {
+            using (var file = new StreamReader(filePath))
+            {
+                var csv = new CsvReader(file);
+                csv.Configuration.RegisterClassMap<PropTransMap>();
+                csv.Configuration.HasHeaderRecord = this.hasHeader;
+                while (csv.Read())
+                {
+                    PropTrans x;
+
+                    try
+                    {
+                        x = csv.GetRecord<PropTrans>();
+                    }
+                    catch (Exception e)
+                    {
+                        var y = e.Data["CsvHelper"];
+                        throw;
+                    }
+
+
+                    yield return x;
+
+                    //yield return csv.GetRecord<PropTrans>();
+                }
+            }
+        }
+    }
+
     public class GpRecord
 
     {
@@ -313,6 +355,56 @@ namespace PatternOfLife
             if (string.IsNullOrEmpty(date) || date.Length != 8) return null;
             else
                 return new DateTime(int.Parse(date.Substring(0, 4)), int.Parse(date.Substring(4, 2)), int.Parse(date.Substring(6, 2)));
+        }
+    }
+
+    public class PropTrans
+    {
+        public string Id { get; set; }
+        public int Price { get; set; }
+        public DateTime DateOfTransfer { get; set; }
+        public string PostCode { get; set; }
+        public string PostCodeInit { get; set; }
+        //D Detached
+        //S Semi-Detached
+        //T   Terraced
+        //F   Flats
+        //O   Other
+        public char PropertyType { get; set; }
+        public bool NewBuilding { get; set; }
+        public bool Freehold { get; set; }
+        public string PAON { get; set; }
+        public string SAON { get; set; }
+        public string Street { get; set; }
+        public string Locality { get; set; }
+        public string Town { get; set; }
+        public string District { get; set; }
+        public string County { get; set; }
+        public bool StandardPrice { get; set; }
+        public char RecordStatus { get; set; }
+    }
+
+    public sealed class PropTransMap : CsvClassMap<PropTrans>
+    {
+        public PropTransMap()
+        {
+            Map(m => m.Id).Index(0);
+            Map(m => m.Price).Index(1);
+            Map(m => m.DateOfTransfer).Index(2);
+            Map(m => m.PostCode).Index(3).ConvertUsing(row => row.GetField<string>(3).Trim());
+            Map(m => m.PostCodeInit).ConvertUsing(row => row.GetField<string>(3).Trim().Split(' ')[0]);
+            Map(m => m.PropertyType).Index(4);
+            Map(m => m.NewBuilding).Index(5).TypeConverterOption(true, "Y");
+            Map(m => m.Freehold).Index(6).TypeConverterOption(true, "F").TypeConverterOption(false, "L");
+            Map(m => m.PAON).Index(7);
+            Map(m => m.SAON).Index(8);
+            Map(m => m.Street).Index(9);
+            Map(m => m.Locality).Index(10);
+            Map(m => m.Town).Index(11);
+            Map(m => m.District).Index(12);
+            Map(m => m.County).Index(13);
+            Map(m => m.StandardPrice).Index(14).TypeConverterOption(true, "A").TypeConverterOption(false, "B");
+            Map(m => m.RecordStatus).Index(15);
         }
     }
 }
