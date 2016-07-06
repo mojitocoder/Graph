@@ -22,12 +22,74 @@ namespace PatternOfLife
             var gpReader = new GpReader(gpPath);
             var gps = gpReader.Read();
 
+            //Trim relevant columns to avoid silly mistakes
+            foreach (var item in gps)
+            {
+                item.NationalGrouping = item.NationalGrouping.Trim();
+                item.HighLevelHealth = item.HighLevelHealth.Trim();
+                item.PostCode = item.PostCode.Trim();
+            }
+
+            //GP nodes
             foreach (var item in gps)
             {
                 client.Cypher.Create("(foo:GP {newGP})")
                     .WithParam("newGP", item)
                     .ExecuteWithoutResults();
             }
+
+            //National Grouping nodes
+            var nationalGroupings = gps.Select(foo => foo.NationalGrouping)
+                                        .Distinct()
+                                        .Select(foo => new NationalGrouping
+                                        {
+                                            Name = foo
+                                        })
+                                        .ToList();
+
+            foreach (var item in nationalGroupings)
+            {
+                client.Cypher.Create("(foo:NationalGrouping {grouping})")
+                                .WithParam("grouping", item)
+                                .ExecuteWithoutResults();
+
+                //find related GPs and add a relationship between them
+                gps.Where(foo => foo.NationalGrouping == item.Name)
+                   .ToList();
+
+            }
+
+
+            //High Level Health
+            var highLevelHealths = gps.Select(foo => foo.HighLevelHealth)
+                                        .Distinct()
+                                        .Select(foo => new HighLevelHealth
+                                        {
+                                            Name = foo
+                                        })
+                                        .ToList();
+
+            //PostCodes
+            var postCodes = gps.Select(foo => foo.PostCode)
+                                .Where(foo => !string.IsNullOrWhiteSpace(foo))
+                                .Distinct()
+                                .Select(foo => new PostCode
+                                {
+                                    Init = foo.Split(' ').First(),
+                                    Full = foo
+                                })
+                                .ToList();
+
+            //PostCodeInits
+            var postCodeInits = postCodes.Select(foo => foo.Init)
+                                         .Distinct()
+                                         .Select(foo => new PostCodeInit
+                                         {
+                                             Init = foo
+                                         })
+                                         .ToList();
+
+
         }
     }
 
@@ -117,6 +179,33 @@ namespace PatternOfLife
 
         [JsonProperty(PropertyName = "careorg")]
         public string CurrentCareOrg { get; set; }
+    }
+
+    public class NationalGrouping
+    {
+        [JsonProperty(PropertyName = "name")]
+        public string Name { get; set; }
+    }
+
+    public class HighLevelHealth
+    {
+        [JsonProperty(PropertyName = "name")]
+        public string Name { get; set; }
+    }
+
+    public class PostCode
+    {
+        [JsonProperty(PropertyName = "init")]
+        public string Init { get; set; }
+
+        [JsonProperty(PropertyName = "full")]
+        public string Full { get; set; }
+    }
+
+    public class PostCodeInit
+    {
+        [JsonProperty(PropertyName = "init")]
+        public string Init { get; set; }
     }
 
     public sealed class GpRecordMap : CsvClassMap<GpRecord>

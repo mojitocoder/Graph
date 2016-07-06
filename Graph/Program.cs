@@ -17,7 +17,7 @@ namespace Graph
             var client = new GraphClient(new Uri("http://localhost:7474/db/data"), username: "neo4j", password: "qwerty123");
             client.Connect();
 
-            CipherQueries(client);
+            //CipherQueries(client);
 
             InsertRosslynReportingLines(client);
 
