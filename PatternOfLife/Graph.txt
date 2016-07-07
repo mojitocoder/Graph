@@ -1,0 +1,46 @@
+Data loaded:
++ List of GP surgeries in the UK
++ List of property transactions in 2016
+
+Other potentials:
++ List of crimes reported
++ List of nurses
+
+Graph
++ Location based
++ Link different types of data together
++ Allow users to quickly explore and discover patterns that are otherwise difficult to achieve
+
+Queries:
+
++ Show the number of property transactions in the database
+MATCH (n:Property) RETURN count(*)
+
++ Postcodes with init NR4
+MATCH (p:PostCode)
+WHERE p.init = 'NR4'
+RETURN p;
+
++ Show all surgeries in NR4 postcodes
+MATCH (p:PostCode)<-[:BELONGS_TO_POSTCODE]-(g:GP)
+WHERE p.init = 'NR4'
+RETURN p, g
+
++ Number of surgeries in each NR4 postcode
+MATCH (p:PostCode)<-[:BELONGS_TO_POSTCODE]-(g:GP)
+WHERE p.init = 'NR4'
+RETURN p, count(g) AS surgeries
+
++ Explore the related information to NR4 7QX node
+double-click => show group, healthgroup and other surgeries
+
++ Retired GPs count
+MATCH (p:GP)
+WHERE p.status = 'B'
+RETURN count(*) AS count;
+
++ Retired GPs in GU area
+MATCH (p:GP)
+WHERE p.status = 'B' AND p.postcodeinit STARTS WITH "GU"
+RETURN count(*) AS count;
+
