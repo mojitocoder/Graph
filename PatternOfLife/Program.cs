@@ -26,6 +26,8 @@ namespace PatternOfLife
 
         static void LoadProperties(GraphClient client, string filePath)
         {
+            Console.WriteLine("Property file starts being loaded: {0}", filePath);
+
             //Go through the whole file to make sure there is no problem
             // Any error will be thrown here - and the process will stop
             foreach (var item in new PropertyReader(filePath, false).Read()) { }
@@ -51,7 +53,7 @@ namespace PatternOfLife
                 }
 
                 //Add a property node
-                client.Cypher.Create("foo:Property {newProp}")
+                client.Cypher.Create("(foo:Property {newProp})")
                         .WithParam("newProp", property)
                         .ExecuteWithoutResults();
 
