@@ -19,6 +19,85 @@ namespace PatternOfLife
             var client = new GraphClient(new Uri("http://localhost:7474/db/data"), username: "neo4j", password: "qwerty123");
             client.Connect();
 
+            //LoadGps(client);
+
+            LoadProperties(client, @"Data\pp-2016.csv");
+        }
+
+        static void LoadProperties(GraphClient client, string filePath)
+        {
+            //Go through the whole file to make sure there is no problem
+            // Any error will be thrown here - and the process will stop
+            foreach (var item in new PropertyReader(filePath, false).Read()) { }
+
+            //Read all existing postcodes in the graph database
+            var x = client.Cypher.Match("(p:PostCode)").Return(p => p.As<PostCode>().Full).Results;
+            var postcodes = new HashSet<string>(x);
+
+            var y = client.Cypher.Match("(p:PostCodeInit)").Return(p => p.As<PostCodeInit>().Init).Results;
+            var postcodeinits = new HashSet<string>(y);
+
+            var propReader = new PropertyReader(filePath, false);
+            var properties = propReader.Read();
+            int i = 0;
+            foreach (var property in properties)
+            {
+                i++;
+
+                if (i > 1000)
+                {
+                    i = 0;
+                    Console.WriteLine("\t1k properties added");
+                }
+
+                //Add a property node
+                client.Cypher.Create("foo:Property {newProp}")
+                        .WithParam("newProp", property)
+                        .ExecuteWithoutResults();
+
+                //Add PostCode + PostCodeInit nodes if they have not been seen before
+                //PostCode
+                if (string.IsNullOrWhiteSpace(property.PostCode)
+                    && !postcodes.Contains(property.PostCode)) //new postcode, never seen before
+                {
+                    postcodes.Add(property.PostCode);
+
+                    var postcode = new PostCode
+                    {
+                        Full = property.PostCode,
+                        Init = property.PostCodeInit
+                    };
+
+                    //create a new PostCode
+                    client.Cypher.Create("(foo:PostCode {postcode})")
+                                    .WithParam("postcode", postcode)
+                                    .ExecuteWithoutResults();
+                }
+
+                //PostCodeInit
+                if (string.IsNullOrWhiteSpace(property.PostCodeInit)
+                    && !postcodeinits.Contains(property.PostCodeInit)) //new postcodeinit, never seen before
+                {
+                    postcodeinits.Add(property.PostCodeInit);
+
+                    var postcodeinit = new PostCodeInit
+                    {
+                        Init = property.PostCodeInit
+                    };
+
+                    //create a new PostCodeInit
+                    client.Cypher.Create("(foo:PostCodeInit {p})")
+                                    .WithParam("p", postcodeinit)
+                                    .ExecuteWithoutResults();
+                }
+
+                //Create index on PostCode and PostCodeInit on Property nodes
+
+            }
+        }
+
+        static void LoadGps(GraphClient client)
+        {
             var gpPath = @"Data\GPs.csv";
             var gpReader = new GpReader(gpPath);
             var gps = gpReader.Read().ToList();
@@ -207,22 +286,22 @@ namespace PatternOfLife
                 csv.Configuration.HasHeaderRecord = this.hasHeader;
                 while (csv.Read())
                 {
-                    PropTrans x;
+                    //PropTrans x;
 
-                    try
-                    {
-                        x = csv.GetRecord<PropTrans>();
-                    }
-                    catch (Exception e)
-                    {
-                        var y = e.Data["CsvHelper"];
-                        throw;
-                    }
+                    //try
+                    //{
+                    //    x = csv.GetRecord<PropTrans>();
+                    //}
+                    //catch (Exception e)
+                    //{
+                    //    var y = e.Data["CsvHelper"];
+                    //    throw;
+                    //}
 
 
-                    yield return x;
+                    //yield return x;
 
-                    //yield return csv.GetRecord<PropTrans>();
+                    yield return csv.GetRecord<PropTrans>();
                 }
             }
         }
@@ -360,27 +439,60 @@ namespace PatternOfLife
 
     public class PropTrans
     {
+        [JsonIgnore]
         public string Id { get; set; }
+
+        [JsonProperty(PropertyName = "price")]
         public int Price { get; set; }
+
+        [JsonProperty(PropertyName = "dateoftransfer")]
         public DateTime DateOfTransfer { get; set; }
+
+        [JsonProperty(PropertyName = "postcode")]
         public string PostCode { get; set; }
+
+        [JsonProperty(PropertyName = "postcodeinit")]
         public string PostCodeInit { get; set; }
         //D Detached
         //S Semi-Detached
         //T   Terraced
         //F   Flats
         //O   Other
+
+        [JsonProperty(PropertyName = "proptype")]
         public char PropertyType { get; set; }
+
+        [JsonProperty(PropertyName = "new")]
         public bool NewBuilding { get; set; }
+
+        [JsonProperty(PropertyName = "freehold")]
         public bool Freehold { get; set; }
+
+        [JsonProperty(PropertyName = "paon")]
         public string PAON { get; set; }
+
+        [JsonProperty(PropertyName = "saon")]
         public string SAON { get; set; }
+
+        [JsonProperty(PropertyName = "street")]
         public string Street { get; set; }
+
+        [JsonProperty(PropertyName = "locality")]
         public string Locality { get; set; }
+
+        [JsonProperty(PropertyName = "town")]
         public string Town { get; set; }
+
+        [JsonProperty(PropertyName = "district")]
         public string District { get; set; }
+
+        [JsonProperty(PropertyName = "county")]
         public string County { get; set; }
+
+        [JsonProperty(PropertyName = "stdprice")]
         public bool StandardPrice { get; set; }
+
+        [JsonProperty(PropertyName = "recstatus")]
         public char RecordStatus { get; set; }
     }
 
