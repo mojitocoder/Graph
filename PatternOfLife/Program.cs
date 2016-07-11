@@ -242,5 +242,51 @@ namespace PatternOfLife
 
             Console.WriteLine("\tPostCodeInit nodes added");
         }
+
+        //AIzaSyBiEgORpbZqJP0tsn6bQSeQJRtrYgvtHUc
     }
+
+    public class Crime
+    {
+        public string Id { get; set; }
+
+        public int Month { get; set; }
+
+        public int Year { get; set; }
+
+        public string ReportedBy { get; set; }
+
+        public string FallsWithin { get; set; }
+
+        public double Longitude { get; set; }
+
+        public double Latitude { get; set; }
+
+        public string Location { get; set; }
+
+        //LSOA: Layer Super Output Area
+        public string LsoaCode { get; set; }
+
+        public string LsoaName { get; set; }
+
+        public string Type { get; set; }
+
+        public string OutcomeCategory { get; set; }
+
+        public string Context { get; set; }
+        //Crime ID, Month, Reported by,Falls within, Longitude, Latitude
+        //    , Location, LSOA code,LSOA name, Crime type,
+        //      Last outcome category,Context
+
+    }
+
+    public sealed class  CrimeMap:CsvClassMap<Crime> ()
+    {
+        public CrimeMap()
+        {
+            Map(m => m.Id).Index(0);
+            Map(m=> m.Month).ConvertUsing(row => row.GetField<string>(1).Trim().Split('-')[1])
+        }
+    }
+
 }
