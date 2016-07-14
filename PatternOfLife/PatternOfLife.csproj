@@ -64,7 +64,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="GeoCoding.cs" />
+    <Compile Include="GeoCoding\GeoCoding.cs" />
+    <Compile Include="GeoCoding\GoogleGeo.cs" />
     <Compile Include="GpReader.cs" />
     <Compile Include="GpRecord.cs" />
     <Compile Include="GpRecordMap.cs" />

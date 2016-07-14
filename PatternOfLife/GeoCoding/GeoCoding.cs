@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace PatternOfLife
+namespace PatternOfLife.GeoCoding
 {
 
     public class AddressComponent
@@ -26,18 +26,12 @@ namespace PatternOfLife
         public double lng { get; set; }
     }
 
-    public class Viewport
-    {
-        public Location northeast { get; set; }
-        public Location southwest { get; set; }
-    }
-
     public class Geometry
     {
         public Bounds bounds { get; set; }
         public Location location { get; set; }
         public string location_type { get; set; }
-        public Viewport viewport { get; set; }
+        public Bounds viewport { get; set; }
     }
 
     public class Result
@@ -49,11 +43,9 @@ namespace PatternOfLife
         public List<string> types { get; set; }
     }
 
-    public class RootObject
+    public class GoogleGeoResult
     {
         public List<Result> results { get; set; }
         public string status { get; set; }
     }
-
-
 }
