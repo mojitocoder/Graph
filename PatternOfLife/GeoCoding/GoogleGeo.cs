@@ -40,5 +40,32 @@ namespace PatternOfLife.GeoCoding
                 }
             }
         }
+
+        public static PostCode GetPostCode(GoogleGeoResult result)
+        {
+            if (result == null || result.results.Count == 0) return null;
+
+            var addressComponents = result.results.First().address_components;
+            if (addressComponents.Count(foo => foo.types.Contains("postal_code")) > 0)
+            {
+                var postcode = addressComponents.First(foo => foo.types.Contains("postal_code")).short_name;
+
+                string full = postcode.Length > 3 ? postcode : "";
+                string init = postcode.Length > 3 ? postcode.Split(' ')[0] : postcode;
+
+                return new PostCode
+                {
+                    Full = full,
+                    Init = init
+                };
+            }
+            else return new PostCode();
+        }
+
+        public static string GetFormattedAddress(GoogleGeoResult result)
+        {
+            if (result == null || result.results.Count == 0) return null;
+            else return result.results.First().formatted_address;
+        }
     }
 }
