@@ -21,7 +21,9 @@ namespace PatternOfLife
 
             //LoadGps(client);
 
-            LoadProperties(client, @"Data\pp-2016.csv");
+            //LoadProperties(client, @"Data\pp-2016.csv");
+
+
         }
 
         static void LoadProperties(GraphClient client, string filePath)
@@ -274,19 +276,65 @@ namespace PatternOfLife
         public string OutcomeCategory { get; set; }
 
         public string Context { get; set; }
-        //Crime ID, Month, Reported by,Falls within, Longitude, Latitude
-        //    , Location, LSOA code,LSOA name, Crime type,
-        //      Last outcome category,Context
-
     }
 
-    public sealed class  CrimeMap:CsvClassMap<Crime> ()
+    public sealed class CrimeMap : CsvClassMap<Crime>
     {
         public CrimeMap()
         {
-            Map(m => m.Id).Index(0);
-            Map(m=> m.Month).ConvertUsing(row => row.GetField<string>(1).Trim().Split('-')[1])
+            Map(m => m.Id).Name("Crime ID");
+            Map(m => m.Month).ConvertUsing(row => int.Parse(row.GetField<string>("Month").Trim().Split('-')[1]));
+            Map(m => m.Year).ConvertUsing(row => int.Parse(row.GetField<string>("Month").Trim().Split('-')[0]));
+            Map(m => m.ReportedBy).Name("Reported by");
+            Map(m => m.FallsWithin).Name("Falls within");
+            Map(m => m.Longitude).Name("Longitude");
+            Map(m => m.Latitude).Name("Latitude");
+            Map(m => m.Location).Name("Location");
+            Map(m => m.LsoaCode).Name("LSOA code");
+            Map(m => m.LsoaName).Name("LSOA name");
+            Map(m => m.Type).Name("Crime type");
+            Map(m => m.OutcomeCategory).Name("Last outcome category");
+            Map(m => m.Context).Name("Context");
         }
     }
+
+    public class CrimeReader
+    {
+        private string filePath;
+
+        public CrimeReader(string filePath)
+        {
+            this.filePath = filePath;
+        }
+
+        public IEnumerable<Crime> Read()
+        {
+            using (var file = new StreamReader(filePath))
+            {
+                var csv = new CsvReader(file);
+                csv.Configuration.RegisterClassMap<CrimeMap>();
+                while (csv.Read())
+                {
+                    //PropTrans x;
+
+                    //try
+                    //{
+                    //    x = csv.GetRecord<PropTrans>();
+                    //}
+                    //catch (Exception e)
+                    //{
+                    //    var y = e.Data["CsvHelper"];
+                    //    throw;
+                    //}
+
+
+                    //yield return x;
+
+                    yield return csv.GetRecord<Crime>();
+                }
+            }
+        }
+    }
+
 
 }
