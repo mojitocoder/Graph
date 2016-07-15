@@ -37,26 +37,16 @@ namespace PatternOfLife.Test
         }
 
         [Fact]
-        public void GetPostCode_Correctly()
+        public void GetAddressDetail_Correctly()
         {
             var path = @"Data\knightsbridge.json";
             var json = File.ReadAllText(path);
             var geoResult = JsonConvert.DeserializeObject<GoogleGeoResult>(json);
 
-            var postcode = GoogleGeo.GetPostCode(geoResult);
-            Assert.Equal(postcode.Init, "SW7");
-            Assert.Equal(postcode.Full, "");
-        }
-
-        [Fact]
-        public void GetFormattedAddress_Correctly()
-        {
-            var path = @"Data\knightsbridge.json";
-            var json = File.ReadAllText(path);
-            var geoResult = JsonConvert.DeserializeObject<GoogleGeoResult>(json);
-
-            var address = GoogleGeo.GetFormattedAddress(geoResult);
-            Assert.Equal(address, "Knightsbridge, London SW7, UK");
+            var address = GoogleGeo.GetAddressDetail(geoResult);
+            Assert.Equal(address.PostCodeInit, "SW7");
+            Assert.Equal(address.PostCode, "SW7 2PS");
+            Assert.Equal(address.FullAddress, "9 Princes Gate Mews, Knightsbridge, London SW7 2PS, UK");
         }
     }
 }

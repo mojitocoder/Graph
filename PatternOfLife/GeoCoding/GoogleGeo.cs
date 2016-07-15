@@ -41,25 +41,40 @@ namespace PatternOfLife.GeoCoding
             }
         }
 
-        public static PostCode GetPostCode(GoogleGeoResult result)
+        public static AddressDetail GetAddressDetail(GoogleGeoResult result)
         {
             if (result == null || result.results.Count == 0) return null;
 
-            var addressComponents = result.results.First().address_components;
-            if (addressComponents.Count(foo => foo.types.Contains("postal_code")) > 0)
+            var x = result.results.Select(r => new
             {
-                var postcode = addressComponents.First(foo => foo.types.Contains("postal_code")).short_name;
+                FormattedAddress = r.formatted_address,
+                PostCode = r.address_components.FirstOrDefault(component => component.types.Contains("postal_code"))
+            })
+            .Where(foo => foo.PostCode != null)
+            .Select(foo => new
+            {
+                FormattedAddress = foo.FormattedAddress,
+                PostCode = foo.PostCode.long_name
+            })
+            .ToList();
 
-                string full = postcode.Length > 3 ? postcode : "";
-                string init = postcode.Length > 3 ? postcode.Split(' ')[0] : postcode;
+            //empty, no address with postcode at all
+            if (x.Count == 0) return new AddressDetail();
 
-                return new PostCode
-                {
-                    Full = full,
-                    Init = init
-                };
-            }
-            else return new PostCode();
+            var maxPostCodeLength = x.Select(foo => foo.PostCode.Length).Max();
+
+            //get the first longest postcode
+            var address = x.First(foo => foo.PostCode.Length == maxPostCodeLength);
+
+            string full = address.PostCode.Length > 3 ? address.PostCode : "";
+            string init = address.PostCode.Length > 3 ? address.PostCode.Split(' ')[0] : address.PostCode;
+
+            return new AddressDetail
+            {
+                PostCode = full,
+                PostCodeInit = init,
+                FullAddress = address.FormattedAddress
+            };
         }
 
         public static string GetFormattedAddress(GoogleGeoResult result)
@@ -67,5 +82,12 @@ namespace PatternOfLife.GeoCoding
             if (result == null || result.results.Count == 0) return null;
             else return result.results.First().formatted_address;
         }
+    }
+
+    public class AddressDetail
+    {
+        public string PostCode { get; set; }
+        public string PostCodeInit { get; set; }
+        public string FullAddress { get; set; }
     }
 }

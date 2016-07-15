@@ -248,6 +248,29 @@ namespace PatternOfLife
         //AIzaSyBiEgORpbZqJP0tsn6bQSeQJRtrYgvtHUc
     }
 
+    public class CrimeReverserGeoCode
+    {
+        private string folder;
+
+        public CrimeReverserGeoCode(string folder)
+        {
+            this.folder = folder;
+        }
+
+        public void Start()
+        {
+            //list all the files from the folder
+            
+
+            //any file starting with _ is done => no need to reverse geocode them
+            //any file starting with a normal character need to be reverse geocoded
+
+            //loop through the list of un-reverse geocoded file
+            //open the file, with each record, send to Google and write back the postcode
+
+        }
+    }
+
     public class Crime
     {
         public string Id { get; set; }
@@ -276,6 +299,12 @@ namespace PatternOfLife
         public string OutcomeCategory { get; set; }
 
         public string Context { get; set; }
+
+        public string PostCode { get; set; }
+
+        public string PostCodeInit { get; set; }
+
+        public string FormattedAddress { get; set; }
     }
 
     public sealed class CrimeMap : CsvClassMap<Crime>
@@ -295,6 +324,9 @@ namespace PatternOfLife
             Map(m => m.Type).Name("Crime type");
             Map(m => m.OutcomeCategory).Name("Last outcome category");
             Map(m => m.Context).Name("Context");
+            //Map(m => m.PostCode).Name("PostCode");
+            //Map(m => m.PostCodeInit).Name("PostCodeInit");
+            //Map(m => m.FormattedAddress).Name("FormattedAddress");
         }
     }
 
@@ -315,26 +347,9 @@ namespace PatternOfLife
                 csv.Configuration.RegisterClassMap<CrimeMap>();
                 while (csv.Read())
                 {
-                    //PropTrans x;
-
-                    //try
-                    //{
-                    //    x = csv.GetRecord<PropTrans>();
-                    //}
-                    //catch (Exception e)
-                    //{
-                    //    var y = e.Data["CsvHelper"];
-                    //    throw;
-                    //}
-
-
-                    //yield return x;
-
                     yield return csv.GetRecord<Crime>();
                 }
             }
         }
     }
-
-
 }
