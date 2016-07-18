@@ -2,6 +2,7 @@
 using CsvHelper.Configuration;
 using Neo4jClient;
 using Newtonsoft.Json;
+using PatternOfLife.GeoCoding;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -23,7 +24,7 @@ namespace PatternOfLife
 
             //LoadProperties(client, @"Data\pp-2016.csv");
 
-
+            GeoCrimeFiles();
         }
 
         static void LoadProperties(GraphClient client, string filePath)
@@ -245,29 +246,88 @@ namespace PatternOfLife
             Console.WriteLine("\tPostCodeInit nodes added");
         }
 
+        static void GeoCrimeFiles()
+        {
+            var folder = @"Data\Crime";
+            const string apiKey = "AIzaSyBiEgORpbZqJP0tsn6bQSeQJRtrYgvtHUc"; //test API key
+
+            var crimeGeo = new CrimeReverserGeoCode(folder, apiKey);
+            crimeGeo.Start();
+        }
         //AIzaSyBiEgORpbZqJP0tsn6bQSeQJRtrYgvtHUc
     }
 
     public class CrimeReverserGeoCode
     {
         private string folder;
+        private string apiKey;
 
-        public CrimeReverserGeoCode(string folder)
+        public CrimeReverserGeoCode(string folder, string apiKey)
         {
             this.folder = folder;
+            this.apiKey = apiKey;
+        }
+
+        public IEnumerable<string> GetNonGeoFiles()
+        {
+            //any file starting with _ is done => no need to reverse geocode them
+            //any file starting with a normal character need to be reverse geocoded
+            var files = Directory.GetFiles(folder, "*.csv");
+
+            var originalFiles = files.Select(foo => Path.GetFileNameWithoutExtension(foo))
+                                        .Where(foo => foo.Last() != '_')
+                                        .ToList();
+            var geoedFiles = new HashSet<string>(files.Select(foo => Path.GetFileNameWithoutExtension(foo)).Where(foo => foo.Last() == '_').Select(foo => foo.Substring(0, foo.Length - 1)));
+
+            return originalFiles.Where(foo => !geoedFiles.Contains(foo)).Select(foo => $"{foo}.csv").ToList();
+        }
+
+        public void GeoCrimeFile(string fileName)
+        {
+            var path = Path.Combine(this.folder, fileName);
+
+            //read the file into memory
+            var crimeReader = new CrimeReader(path);
+            var crimes = crimeReader.Read();
+
+            var targetFile = $"{Path.GetFileNameWithoutExtension(fileName)}_{Path.GetExtension(fileName)}";
+            var targetPath = Path.Combine(this.folder, targetFile);
+
+            Console.WriteLine("Start file: {0}", path);
+            using (var writer = new StreamWriter(targetPath, false))
+            {
+                var csv = new CsvWriter(writer);
+                var googleGeo = new GoogleGeo(apiKey);
+
+                int i = 0;
+                foreach (var item in crimes)
+                {
+                    i++;
+                    if (i % 100 == 0) Console.WriteLine("\t100 records");
+
+                    var result = googleGeo.ReverseGeoCode(item.Latitude, item.Longitude).Result;
+                    var addressDetail = GoogleGeo.GetAddressDetail(result);
+
+                    if (addressDetail != null)
+                    {
+                        item.FormattedAddress = addressDetail.FullAddress;
+                        item.PostCode = addressDetail.PostCode;
+                        item.PostCodeInit = addressDetail.PostCodeInit;
+                    }
+
+                    csv.WriteRecord(item);
+                }
+            }
         }
 
         public void Start()
         {
-            //list all the files from the folder
-            
+            var nonGeoFiles = GetNonGeoFiles();
 
-            //any file starting with _ is done => no need to reverse geocode them
-            //any file starting with a normal character need to be reverse geocoded
-
-            //loop through the list of un-reverse geocoded file
-            //open the file, with each record, send to Google and write back the postcode
-
+            foreach (var item in nonGeoFiles)
+            {
+                GeoCrimeFile(item);
+            }
         }
     }
 
