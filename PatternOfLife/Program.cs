@@ -24,7 +24,13 @@ namespace PatternOfLife
 
             //LoadProperties(client, @"Data\pp-2016.csv");
 
-            GeoCrimeFiles();
+            //GeoCrimeFiles(); //Reverse geo-code the crime data files
+
+            //LoadGeoedCrimeFiles(client);
+
+            //CreateLinkFromPostcodeToPropertiesAndCrimes(client);
+
+            Console.ReadLine();
         }
 
         static void LoadProperties(GraphClient client, string filePath)
@@ -254,8 +260,121 @@ namespace PatternOfLife
             var crimeGeo = new CrimeReverserGeoCode(folder, apiKey);
             crimeGeo.Start();
         }
-        //AIzaSyBiEgORpbZqJP0tsn6bQSeQJRtrYgvtHUc
+
+        static void LoadGeoedCrimeFiles(GraphClient client)
+        {
+            var folderPath = @"Data\Crime";
+
+            var files = Directory.GetFiles(folderPath, "*.csv").Where(foo => Path.GetFileNameWithoutExtension(foo).Last() == '_').ToList();
+
+            var crimes = files.SelectMany(file => new GeoedCrimeReader(file).Read().ToList())
+                                .Where(foo => foo.PostCodeInit != "")
+                                .ToList();
+
+            var postcodeCrimeCount = crimes.GroupBy(foo => foo.PostCodeInit, foo => foo)
+                            .Select(foo => new
+                            {
+                                PostCodeInit = foo.Key,
+                                Count = foo.Count()
+                            })
+                            .OrderByDescending(foo => foo.Count)
+                            .ToList();
+
+            foreach (var item in postcodeCrimeCount)
+            {
+                Console.WriteLine($"{item.PostCodeInit} :{item.Count}");
+            }
+
+            //Load crimes into the graph
+            foreach (var item in crimes)
+            {
+                client.Cypher.Create("(foo:Crime {newCrime})")
+                    .WithParam("newCrime", item)
+                    .ExecuteWithoutResults();
+            }
+
+            Console.WriteLine("Crime data loaded");
+        }
+
+        static void CreateLinkFromPostcodeToPropertiesAndCrimes(GraphClient client)
+        {
+            //Read all existing postcodes in the graph database
+            var postcodes = client.Cypher.Match("(p:PostCode)").Return(p => p.As<PostCode>()).Results.ToList();
+            var postcodeInits = client.Cypher.Match("(p:PostCodeInit)").Return(p => p.As<PostCodeInit>()).Results.ToList();
+
+            foreach (var item in postcodes)
+            {
+                client.Cypher
+                      .Match("(prop:Property)", "(p:PostCode)")
+                      .Where((PropTrans prop) => prop.PostCode == item.Full)
+                      .AndWhere((PostCode p) => p.Full == item.Full)
+                      .CreateUnique("prop-[:EXCHANGED_IN_POSTCODE]->p")
+                      .ExecuteWithoutResults();
+            }
+
+            Console.WriteLine("Done Prop - PostCode");
+
+            foreach (var item in postcodeInits)
+            {
+                client.Cypher
+                      .Match("(prop:Property)", "(p:PostCodeInit)")
+                      .Where((PropTrans prop) => prop.PostCodeInit == item.Init)
+                      .AndWhere((PostCodeInit p) => p.Init == item.Init)
+                      .CreateUnique("prop-[:EXCHANGED_IN_POSTCODEINIT]->p")
+                      .ExecuteWithoutResults();
+            }
+
+            Console.WriteLine("Done Prop - PostCodeInit");
+
+            foreach (var item in postcodes)
+            {
+                client.Cypher
+                      .Match("(c:Crime)", "(p:PostCode)")
+                      .Where((Crime c) => c.PostCode == item.Full)
+                      .AndWhere((PostCode p) => p.Full == item.Full)
+                      .CreateUnique("c-[:HAPPENED_IN_POSTCODE]->p")
+                      .ExecuteWithoutResults();
+            }
+
+            Console.WriteLine("Done Crime - PostCode");
+
+            foreach (var item in postcodeInits)
+            {
+                client.Cypher
+                      .Match("(c:Crime)", "(p:PostCodeInit)")
+                      .Where((Crime c) => c.PostCodeInit == item.Init)
+                      .AndWhere((PostCodeInit p) => p.Init == item.Init)
+                      .CreateUnique("c-[:HAPPENED_IN_POSTCODEINIT]->p")
+                      .ExecuteWithoutResults();
+            }
+
+            Console.WriteLine("Done Crime - PostCodeInit");
+        }
     }
+
+    public sealed class GeoedCrimeMap : CsvClassMap<Crime>
+    {
+        public GeoedCrimeMap()
+        {
+            Map(m => m.Id).Index(0);
+            Map(m => m.Month).Index(1);
+            Map(m => m.Year).Index(2);
+            Map(m => m.ReportedBy).Index(3);
+            Map(m => m.FallsWithin).Index(4);
+            Map(m => m.Longitude).Index(5);
+            Map(m => m.Latitude).Index(6);
+            Map(m => m.Location).Index(7);
+            Map(m => m.LsoaCode).Index(8);
+            Map(m => m.LsoaName).Index(9);
+            Map(m => m.Type).Index(10);
+            Map(m => m.OutcomeCategory).Index(11);
+            Map(m => m.Context).Index(12);
+            Map(m => m.PostCode).Index(13);
+            Map(m => m.PostCodeInit).Index(14);
+            Map(m => m.FormattedAddress).Index(15);
+        }
+    }
+
 
     public class CrimeReverserGeoCode
     {
@@ -327,6 +446,30 @@ namespace PatternOfLife
             foreach (var item in nonGeoFiles)
             {
                 GeoCrimeFile(item);
+            }
+        }
+    }
+
+    public class GeoedCrimeReader
+    {
+        private string filePath;
+
+        public GeoedCrimeReader(string filePath)
+        {
+            this.filePath = filePath;
+        }
+
+        public IEnumerable<Crime> Read()
+        {
+            using (var file = new StreamReader(filePath))
+            {
+                var csv = new CsvReader(file);
+                csv.Configuration.HasHeaderRecord = false;
+                csv.Configuration.RegisterClassMap<GeoedCrimeMap>();
+                while (csv.Read())
+                {
+                    yield return csv.GetRecord<Crime>();
+                }
             }
         }
     }
